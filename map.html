@@ -3,1217 +3,534 @@
 
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
 
-    <title>MVGR Campus Navigation</title>
+<title>MVGR Campus Navigation</title>
 
-    <!-- Your CSS -->
-    <link rel="stylesheet" href="map.css">
+<link rel="stylesheet" href="map.css">
 
-    <!-- Leaflet CSS -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    >
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-    <style>
+<style>
 
-        /* =========================
-           ROUTE INFORMATION BOX
-           ========================= */
+#routeInfo {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+    z-index: 1000;
+    font-family: Arial, sans-serif;
+    max-width: 500px;
+    margin: auto;
+}
 
-        #routeInfo {
+#routeInfo h3 {
+    margin: 0 0 8px 0;
+    color: #0B2D4D;
+}
 
-            position: fixed;
+#routeDetails {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.7;
+}
 
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
+#voiceButton {
+    margin-top: 10px;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #1677FF;
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
 
-            background: white;
+#reachedMessage {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #DFF7E5;
+    color: #167A35;
+    font-weight: bold;
+    text-align: center;
+}
 
-            padding: 16px;
-
-            border-radius: 16px;
-
-            box-shadow:
-                0 4px 18px rgba(0,0,0,0.25);
-
-            z-index: 1000;
-
-            font-family: Arial, sans-serif;
-
-            max-width: 500px;
-
-            margin: auto;
-        }
-
-
-        #routeInfo h3 {
-
-            margin: 0 0 8px 0;
-
-            color: #0B2D4D;
-
-        }
-
-
-        #routeDetails {
-
-            font-size: 15px;
-
-            color: #333;
-
-            line-height: 1.7;
-
-        }
-
-
-        /* =========================
-           VOICE BUTTON
-           ========================= */
-
-        #voiceButton {
-
-            margin-top: 10px;
-
-            width: 100%;
-
-            padding: 12px;
-
-            border: none;
-
-            border-radius: 10px;
-
-            background: #1677FF;
-
-            color: white;
-
-            font-size: 15px;
-
-            font-weight: bold;
-
-            cursor: pointer;
-
-        }
-
-
-        #voiceButton:hover {
-
-            background: #0B5ED7;
-
-        }
-
-
-        /* =========================
-           DESTINATION REACHED
-           ========================= */
-
-        #reachedMessage {
-
-            display: none;
-
-            margin-top: 10px;
-
-            padding: 10px;
-
-            border-radius: 10px;
-
-            background: #DFF7E5;
-
-            color: #167A35;
-
-            font-weight: bold;
-
-            text-align: center;
-
-        }
-
-    </style>
+</style>
 
 </head>
 
-
 <body>
 
+<h1>🗺️ MVGR Campus Navigation</h1>
 
-    <!-- =========================
-         PAGE TITLE
-         ========================= -->
+<div id="map"></div>
 
-    <h1>🗺️ MVGR Campus Map</h1>
+<div id="routeInfo">
 
+<h3 id="destinationTitle">
+🎯 CSE Department
+</h3>
 
-    <!-- =========================
-         MAP
-         ========================= -->
+<div id="routeDetails">
+📍 Finding your live location...
+</div>
 
-    <div id="map"></div>
+<button id="voiceButton">
+🔊 Start Voice Navigation
+</button>
 
+<div id="reachedMessage">
+🏁 You have reached your destination!
+</div>
 
-    <!-- =========================
-         ROUTE INFORMATION
-         ========================= -->
+</div>
 
-    <div id="routeInfo">
+<script
+src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 
-        <h3>🎯 CSE Department</h3>
+<script>
 
+/* =========================================
+   DESTINATION DATA
+   ========================================= */
 
-        <div id="routeDetails">
+const destinations = {
 
-            📍 Finding your live location...
+    cse: {
+        name: "CSE Department",
+        fullName: "Computer Science & Engineering",
+        lat: 18.059816,
+        lng: 83.404789
+    }
 
-        </div>
-
-
-        <button id="voiceButton">
-
-            🔊 Start Voice Navigation
-
-        </button>
-
-
-        <div id="reachedMessage">
-
-            🏁 You have reached CSE Department!
-
-        </div>
-
-    </div>
-
-
-    <!-- =========================
-         LEAFLET JS
-         ========================= -->
-
-    <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
+};
 
 
-    <script>
+/* =========================================
+   GET DESTINATION FROM URL
+   ========================================= */
+
+const params =
+    new URLSearchParams(window.location.search);
+
+const selected =
+    params.get("destination") || "cse";
 
 
-        // =====================================================
-        // CREATE MAP
-        // =====================================================
+const destination =
+    destinations[selected] || destinations.cse;
 
-        const map = L.map('map').setView(
 
-            [18.060619, 83.405117],
+/* =========================================
+   MAP
+   ========================================= */
 
-            17
+const map = L.map("map").setView(
+    [18.060619, 83.405117],
+    17
+);
 
+
+/* =========================================
+   OPEN STREET MAP
+   ========================================= */
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        attribution:
+        "&copy; OpenStreetMap contributors"
+    }
+).addTo(map);
+
+
+/* =========================================
+   DESTINATION LOCATION
+   ========================================= */
+
+const destinationLocation =
+    L.latLng(
+        destination.lat,
+        destination.lng
+    );
+
+
+/* =========================================
+   DESTINATION MARKER
+   ========================================= */
+
+const destinationMarker =
+    L.marker(destinationLocation)
+    .addTo(map)
+    .bindPopup(
+        "<b>🎯 " +
+        destination.name +
+        "</b><br>" +
+        destination.fullName
+    );
+
+
+/* =========================================
+   VARIABLES
+   ========================================= */
+
+let userLocation = null;
+
+let userMarker = null;
+
+let routeLine = null;
+
+let routeSteps = [];
+
+let voiceEnabled = false;
+
+let destinationReached = false;
+
+let lastSpokenStep = -1;
+
+
+/* =========================================
+   VOICE
+   ========================================= */
+
+function speak(text) {
+
+    if (!voiceEnabled) {
+        return;
+    }
+
+    if (!("speechSynthesis" in window)) {
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const speech =
+        new SpeechSynthesisUtterance(text);
+
+    speech.lang = "en-IN";
+
+    speech.rate = 0.9;
+
+    window.speechSynthesis.speak(speech);
+}
+
+
+/* =========================================
+   VOICE BUTTON
+   ========================================= */
+
+document.getElementById("voiceButton")
+.addEventListener("click", function() {
+
+    voiceEnabled = !voiceEnabled;
+
+    if (voiceEnabled) {
+
+        this.innerHTML =
+            "🔊 Voice Navigation ON";
+
+        this.style.background =
+            "#168A45";
+
+        speak(
+            "Voice navigation started. " +
+            "Navigating to " +
+            destination.name
         );
 
+    } else {
 
-        // =====================================================
-        // OPEN STREET MAP
-        // =====================================================
+        this.innerHTML =
+            "🔇 Voice Navigation OFF";
 
-        L.tileLayer(
+        this.style.background =
+            "#1677FF";
 
-            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        window.speechSynthesis.cancel();
+    }
 
-            {
+});
 
-                attribution:
-                '&copy; OpenStreetMap contributors'
 
-            }
+/* =========================================
+   ROUTE
+   ========================================= */
 
-        ).addTo(map);
+function updateRoute(start) {
 
+    document.getElementById(
+        "routeDetails"
+    ).innerHTML =
+        "🔄 Calculating route...";
 
 
-        // =====================================================
-        // CSE DEPARTMENT LOCATION
-        // =====================================================
+    const routeURL =
+        "https://router.project-osrm.org/route/v1/driving/" +
 
-        const cseLocation = L.latLng(
+        start.lng + "," +
+        start.lat +
 
-            18.059816,
+        ";" +
 
-            83.404789
+        destination.lng + "," +
+        destination.lat +
 
-        );
+        "?overview=full&steps=true&geometries=geojson";
 
 
+    fetch(routeURL)
 
-        // =====================================================
-        // CSE DESTINATION MARKER
-        // =====================================================
+    .then(response => response.json())
 
-        const destinationMarker = L.marker(
-
-            cseLocation
-
-        )
-
-        .addTo(map)
-
-        .bindPopup(
-
-            "<b>🎯 CSE Department</b><br>" +
-
-            "Computer Science & Engineering"
-
-        );
-
-
-
-        // =====================================================
-        // VARIABLES
-        // =====================================================
-
-        let userLocation = null;
-
-        let userMarker = null;
-
-        let routeLine = null;
-
-        let routeSteps = [];
-
-        let lastSpokenStep = -1;
-
-        let voiceEnabled = false;
-
-        let destinationReached = false;
-
-
-
-        // =====================================================
-        // VOICE FUNCTION
-        // =====================================================
-
-        function speak(text) {
-
-            if (!voiceEnabled) {
-
-                return;
-
-            }
-
-
-            if (!("speechSynthesis" in window)) {
-
-                return;
-
-            }
-
-
-            window.speechSynthesis.cancel();
-
-
-            const speech =
-                new SpeechSynthesisUtterance(text);
-
-
-            speech.lang = "en-IN";
-
-            speech.rate = 0.9;
-
-            speech.pitch = 1;
-
-
-            window.speechSynthesis.speak(
-
-                speech
-
-            );
-
-        }
-
-
-
-        // =====================================================
-        // VOICE BUTTON
-        // =====================================================
-
-        const voiceButton =
-
-            document.getElementById(
-
-                "voiceButton"
-
-            );
-
-
-        voiceButton.addEventListener(
-
-            "click",
-
-            function() {
-
-
-                voiceEnabled = !voiceEnabled;
-
-
-                if (voiceEnabled) {
-
-
-                    voiceButton.innerHTML =
-
-                        "🔊 Voice Navigation ON";
-
-
-                    voiceButton.style.background =
-
-                        "#168A45";
-
-
-                    speak(
-
-                        "Voice navigation started. " +
-
-                        "Navigating to CSE Department."
-
-                    );
-
-
-                    // Speak current route instruction
-
-                    if (routeSteps.length > 0) {
-
-                        setTimeout(
-
-                            function() {
-
-                                speakStep(
-
-                                    0
-
-                                );
-
-                            },
-
-                            2500
-
-                        );
-
-                    }
-
-
-                }
-
-                else {
-
-
-                    voiceButton.innerHTML =
-
-                        "🔇 Voice Navigation OFF";
-
-
-                    voiceButton.style.background =
-
-                        "#1677FF";
-
-
-                    window.speechSynthesis.cancel();
-
-                }
-
-            }
-
-        );
-
-
-
-        // =====================================================
-        // CONVERT OSRM MANEUVER TO SIMPLE ENGLISH
-        // =====================================================
-
-        function getInstruction(step) {
-
-
-            const type =
-
-                step.maneuver.type;
-
-
-            const modifier =
-
-                step.maneuver.modifier;
-
-
-            let instruction = "";
-
-
-            if (type === "depart") {
-
-                instruction =
-
-                    "Start walking on the route.";
-
-            }
-
-
-            else if (type === "arrive") {
-
-                instruction =
-
-                    "You have reached CSE Department.";
-
-            }
-
-
-            else if (type === "turn") {
-
-
-                if (modifier === "left") {
-
-                    instruction =
-
-                        "Turn left.";
-
-                }
-
-                else if (modifier === "right") {
-
-                    instruction =
-
-                        "Turn right.";
-
-                }
-
-                else if (
-
-                    modifier === "slight left"
-
-                ) {
-
-                    instruction =
-
-                        "Keep slightly left.";
-
-                }
-
-                else if (
-
-                    modifier === "slight right"
-
-                ) {
-
-                    instruction =
-
-                        "Keep slightly right.";
-
-                }
-
-                else if (
-
-                    modifier === "sharp left"
-
-                ) {
-
-                    instruction =
-
-                        "Turn sharply left.";
-
-                }
-
-                else if (
-
-                    modifier === "sharp right"
-
-                ) {
-
-                    instruction =
-
-                        "Turn sharply right.";
-
-                }
-
-                else {
-
-                    instruction =
-
-                        "Continue on the route.";
-
-                }
-
-            }
-
-
-            else if (type === "continue") {
-
-                instruction =
-
-                    "Continue straight.";
-
-            }
-
-
-            else if (type === "roundabout") {
-
-                instruction =
-
-                    "Enter the roundabout.";
-
-            }
-
-
-            else {
-
-                instruction =
-
-                    "Continue on the route.";
-
-            }
-
-
-            return instruction;
-
-        }
-
-
-
-        // =====================================================
-        // SPEAK ROUTE STEP
-        // =====================================================
-
-        function speakStep(index) {
-
-
-            if (
-
-                index < 0 ||
-
-                index >= routeSteps.length
-
-            ) {
-
-                return;
-
-            }
-
-
-            const step =
-
-                routeSteps[index];
-
-
-            const instruction =
-
-                getInstruction(step);
-
-
-            const distance =
-
-                Math.round(
-
-                    step.distance
-
-                );
-
-
-            let message;
-
-
-            if (
-
-                instruction.includes(
-
-                    "reached"
-
-                )
-
-            ) {
-
-                message = instruction;
-
-            }
-
-            else if (distance > 0) {
-
-                message =
-
-                    "In approximately " +
-
-                    distance +
-
-                    " meters, " +
-
-                    instruction;
-
-            }
-
-            else {
-
-                message = instruction;
-
-            }
-
-
-            speak(message);
-
-        }
-
-
-
-        // =====================================================
-        // CREATE ROUTE
-        // =====================================================
-
-        function updateRoute(start) {
-
-
-            const routeDetails =
-
-                document.getElementById(
-
-                    "routeDetails"
-
-                );
-
-
-            routeDetails.innerHTML =
-
-                "🔄 Calculating route...";
-
-
-            // =================================================
-            // OSRM ROUTE
-            // =================================================
-
-            const routeURL =
-
-                "https://router.project-osrm.org/route/v1/driving/" +
-
-                start.lng +
-
-                "," +
-
-                start.lat +
-
-                ";" +
-
-                cseLocation.lng +
-
-                "," +
-
-                cseLocation.lat +
-
-                "?overview=full&steps=true&geometries=geojson";
-
-
-
-            fetch(routeURL)
-
-
-                .then(
-
-                    response =>
-
-                        response.json()
-
-                )
-
-
-                .then(
-
-                    data => {
-
-
-                        if (
-
-                            !data.routes ||
-
-                            data.routes.length === 0
-
-                        ) {
-
-
-                            routeDetails.innerHTML =
-
-                                "❌ Route not found.";
-
-                            return;
-
-                        }
-
-
-
-                        const route =
-
-                            data.routes[0];
-
-
-
-                        // =====================================
-                        // REMOVE OLD ROUTE
-                        // =====================================
-
-                        if (routeLine) {
-
-                            map.removeLayer(
-
-                                routeLine
-
-                            );
-
-                        }
-
-
-
-                        // =====================================
-                        // DRAW NEW ROUTE
-                        // =====================================
-
-                        routeLine =
-
-                            L.geoJSON(
-
-                                route.geometry,
-
-                                {
-
-                                    style: {
-
-                                        color: "#1677FF",
-
-                                        weight: 6,
-
-                                        opacity: 0.85
-
-                                    }
-
-                                }
-
-                            ).addTo(map);
-
-
-
-                        // =====================================
-                        // ROUTE STEPS
-                        // =====================================
-
-                        routeSteps =
-
-                            route.legs[0].steps;
-
-
-                        // =====================================
-                        // DISTANCE
-                        // =====================================
-
-                        const distanceMeters =
-
-                            route.distance;
-
-
-                        let distanceText;
-
-
-                        if (
-
-                            distanceMeters < 1000
-
-                        ) {
-
-                            distanceText =
-
-                                Math.round(
-
-                                    distanceMeters
-
-                                ) +
-
-                                " m";
-
-                        }
-
-                        else {
-
-                            distanceText =
-
-                                (
-
-                                    distanceMeters /
-
-                                    1000
-
-                                ).toFixed(2) +
-
-                                " km";
-
-                        }
-
-
-
-                        // =====================================
-                        // WALKING TIME
-                        // Average walking speed
-                        // =====================================
-
-                        const walkingMinutes =
-
-                            Math.max(
-
-                                1,
-
-                                Math.ceil(
-
-                                    distanceMeters /
-
-                                    1.4 /
-
-                                    60
-
-                                )
-
-                            );
-
-
-
-                        // =====================================
-                        // UPDATE INFORMATION
-                        // =====================================
-
-                        routeDetails.innerHTML =
-
-                            "📍 <b>You are here</b><br>" +
-
-                            "🎯 <b>CSE Department</b><br>" +
-
-                            "📏 Distance: <b>" +
-
-                            distanceText +
-
-                            "</b><br>" +
-
-                            "⏱️ Walking time: <b>" +
-
-                            walkingMinutes +
-
-                            " min</b><br>" +
-
-                            "🚶 Walking route";
-
-
-
-                        // =====================================
-                        // CHECK DESTINATION
-                        // =====================================
-
-                        const distanceToDestination =
-
-                            start.distanceTo(
-
-                                cseLocation
-
-                            );
-
-
-                        if (
-
-                            distanceToDestination < 25
-
-                        ) {
-
-                            if (!destinationReached) {
-
-
-                                destinationReached =
-
-                                    true;
-
-
-                                document.getElementById(
-
-                                    "reachedMessage"
-
-                                ).style.display =
-
-                                    "block";
-
-
-                                speak(
-
-                                    "You have reached " +
-
-                                    "CSE Department."
-
-                                );
-
-                            }
-
-                        }
-
-                        else {
-
-                            destinationReached =
-
-                                false;
-
-
-                            document.getElementById(
-
-                                "reachedMessage"
-
-                            ).style.display =
-
-                                "none";
-
-                        }
-
-
-                        // =====================================
-                        // CHECK TURN INSTRUCTIONS
-                        // =====================================
-
-                        if (voiceEnabled) {
-
-                            checkNextInstruction(
-
-                                start
-
-                            );
-
-                        }
-
-
-                    }
-
-                )
-
-
-                .catch(
-
-                    error => {
-
-
-                        console.log(error);
-
-
-                        routeDetails.innerHTML =
-
-                            "❌ Unable to create route.";
-
-                    }
-
-                );
-
-        }
-
-
-
-        // =====================================================
-        // CHECK NEXT VOICE INSTRUCTION
-        // =====================================================
-
-        function checkNextInstruction(
-
-            currentLocation
-
-        ) {
-
-
-            if (
-
-                routeSteps.length === 0
-
-            ) {
-
-                return;
-
-            }
-
-
-            for (
-
-                let i = lastSpokenStep + 1;
-
-                i < routeSteps.length;
-
-                i++
-
-            ) {
-
-
-                const step =
-
-                    routeSteps[i];
-
-
-                const stepLocation =
-
-                    L.latLng(
-
-                        step.maneuver.location[1],
-
-                        step.maneuver.location[0]
-
-                    );
-
-
-                const distance =
-
-                    currentLocation.distanceTo(
-
-                        stepLocation
-
-                    );
-
-
-                // Speak instruction when user
-                // comes within 30 meters
-
-                if (distance <= 30) {
-
-
-                    speakStep(i);
-
-
-                    lastSpokenStep = i;
-
-
-                    break;
-
-                }
-
-            }
-
-        }
-
-
-
-        // =====================================================
-        // LIVE GPS TRACKING
-        // =====================================================
+    .then(data => {
 
         if (
-
-            navigator.geolocation
-
+            !data.routes ||
+            data.routes.length === 0
         ) {
 
+            document.getElementById(
+                "routeDetails"
+            ).innerHTML =
+                "❌ Route not found.";
 
-            navigator.geolocation.watchPosition(
-
-                function(position) {
-
-
-                    userLocation =
-
-                        L.latLng(
-
-                            position.coords.latitude,
-
-                            position.coords.longitude
-
-                        );
+            return;
+        }
 
 
-
-                    // ========================================
-                    // USER MARKER
-                    // ========================================
-
-                    if (userMarker) {
+        const route =
+            data.routes[0];
 
 
-                        userMarker.setLatLng(
+        /* REMOVE OLD ROUTE */
 
-                            userLocation
-
-                        );
-
-                    }
-
-                    else {
+        if (routeLine) {
+            map.removeLayer(routeLine);
+        }
 
 
-                        userMarker =
+        /* DRAW ROUTE */
 
-                            L.marker(
-
-                                userLocation
-
-                            )
-
-                            .addTo(map)
-
-                            .bindPopup(
-
-                                "📍 You are here"
-
-                            );
-
-
-                    }
-
-
-
-                    // ========================================
-                    // UPDATE ROUTE
-                    // ========================================
-
-                    updateRoute(
-
-                        userLocation
-
-                    );
-
-
-
-                },
-
-
-                function(error) {
-
-
-                    document.getElementById(
-
-                        "routeDetails"
-
-                    ).innerHTML =
-
-                        "⚠️ Please allow location access " +
-
-                        "to start navigation.";
-
-
-                },
-
-
+        routeLine =
+            L.geoJSON(
+                route.geometry,
                 {
-
-                    enableHighAccuracy: true,
-
-                    maximumAge: 5000,
-
-                    timeout: 10000
-
+                    style: {
+                        color: "#1677FF",
+                        weight: 6,
+                        opacity: 0.85
+                    }
                 }
+            ).addTo(map);
 
+
+        /* ROUTE STEPS */
+
+        routeSteps =
+            route.legs[0].steps;
+
+
+        /* DISTANCE */
+
+        const distanceMeters =
+            route.distance;
+
+
+        let distanceText;
+
+
+        if (distanceMeters < 1000) {
+
+            distanceText =
+                Math.round(distanceMeters) +
+                " m";
+
+        } else {
+
+            distanceText =
+                (distanceMeters / 1000)
+                .toFixed(2) +
+                " km";
+        }
+
+
+        /* WALKING TIME */
+
+        const walkingMinutes =
+            Math.max(
+                1,
+                Math.ceil(
+                    distanceMeters /
+                    1.4 /
+                    60
+                )
             );
 
-        }
+
+        /* DISPLAY */
+
+        document.getElementById(
+            "routeDetails"
+        ).innerHTML =
+
+            "📍 <b>You are here</b><br>" +
+
+            "🎯 <b>" +
+            destination.name +
+            "</b><br>" +
+
+            "📏 Distance: <b>" +
+            distanceText +
+            "</b><br>" +
+
+            "⏱️ Walking time: <b>" +
+            walkingMinutes +
+            " min</b><br>" +
+
+            "🚶 Walking route";
 
 
-        else {
+        /* DESTINATION CHECK */
 
+        const remaining =
+            start.distanceTo(
+                destinationLocation
+            );
+
+
+        if (remaining < 25) {
+
+            if (!destinationReached) {
+
+                destinationReached = true;
+
+                document.getElementById(
+                    "reachedMessage"
+                ).style.display =
+                    "block";
+
+                speak(
+                    "You have reached " +
+                    destination.name
+                );
+            }
+
+        } else {
+
+            destinationReached = false;
 
             document.getElementById(
-
-                "routeDetails"
-
-            ).innerHTML =
-
-                "❌ Geolocation is not supported " +
-
-                "by this browser.";
-
+                "reachedMessage"
+            ).style.display =
+                "none";
         }
 
+    })
+
+    .catch(error => {
+
+        console.log(error);
+
+        document.getElementById(
+            "routeDetails"
+        ).innerHTML =
+            "❌ Unable to create route.";
+
+    });
+
+}
 
 
-    </script>
+/* =========================================
+   LIVE GPS
+   ========================================= */
+
+if (navigator.geolocation) {
+
+    navigator.geolocation.watchPosition(
+
+        function(position) {
+
+            userLocation =
+                L.latLng(
+                    position.coords.latitude,
+                    position.coords.longitude
+                );
+
+
+            /* USER MARKER */
+
+            if (userMarker) {
+
+                userMarker.setLatLng(
+                    userLocation
+                );
+
+            } else {
+
+                userMarker =
+                    L.marker(
+                        userLocation
+                    )
+                    .addTo(map)
+                    .bindPopup(
+                        "📍 You are here"
+                    );
+
+            }
+
+
+            /* UPDATE ROUTE */
+
+            updateRoute(
+                userLocation
+            );
+
+        },
+
+        function(error) {
+
+            document.getElementById(
+                "routeDetails"
+            ).innerHTML =
+
+                "⚠️ Please allow location " +
+                "access to start navigation.";
+
+        },
+
+        {
+            enableHighAccuracy: true,
+            maximumAge: 5000,
+            timeout: 10000
+        }
+
+    );
+
+} else {
+
+    document.getElementById(
+        "routeDetails"
+    ).innerHTML =
+        "❌ Geolocation is not supported.";
+
+}
+
+</script>
 
 </body>
 
