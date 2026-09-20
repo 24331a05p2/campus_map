@@ -1,0 +1,21 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    text-align: center;
+    padding: 20px;
+    background-color: #123c69;
+    color: white;
+}
+
+#map {
+    width: 100%;
+    height: calc(100vh - 80px);
+}
