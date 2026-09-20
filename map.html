@@ -216,7 +216,12 @@ map.setView(destinationLocation, 18);
    ========================================= */
 
 const destinationMarker =
-    L.marker(destinationLocation)
+    L.circleMarker(destinationLocation, {
+        radius: 10,
+        color: "#FF0000",
+        fillColor: "#FF0000",
+        fillOpacity: 1
+    })
     .addTo(map)
     .bindPopup(
         "<b>🎯 " +
